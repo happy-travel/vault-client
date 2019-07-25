@@ -13,9 +13,9 @@ namespace HappyTravel.VaultClient
 {
     public class VaultClient : IDisposable, IVaultClient
     {
-        public VaultClient(HttpClient client, ILoggerFactory loggerFactory, IOptions<VaultOptions> vaultOptions)
+        public VaultClient(IHttpClientFactory clientFactory, ILoggerFactory loggerFactory, IOptions<VaultOptions> vaultOptions)
         {
-            _client = client;
+            _client = clientFactory.CreateClient();
             _logger = loggerFactory?.CreateLogger<VaultClient>() ?? new NullLogger<VaultClient>();
             _options = vaultOptions?.Value ?? throw new ArgumentNullException(nameof(vaultOptions));
 

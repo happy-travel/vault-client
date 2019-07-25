@@ -24,7 +24,7 @@ namespace HappyTravel.VaultClient.Tests
                 Url = new Uri("https://vault.dev.happytravel.com/v1/")
             });
 
-            var client = new VaultClient(httpClient, new NullLoggerFactory(), options);
+            var client = new VaultClient(clientFactoryMock.Object, new NullLoggerFactory(), options);
 
             await client.Login("");
             var secret = await client.Get("edo/connection-string");

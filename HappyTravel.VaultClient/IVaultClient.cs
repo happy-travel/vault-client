@@ -1,12 +1,11 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace HappyTravel.VaultClient
 {
-    public interface IVaultClient
+    public interface IVaultClient : IDisposable
     {
-        void Dispose();
-
         Task<Dictionary<string, string>> Get(string secret);
 
         Task Login(string token);
