@@ -56,7 +56,7 @@ namespace HappyTravel.VaultClient
         }
 
 
-        public async Task Login(string token)
+        public async Task LoginWithRole(string token)
         {
             await _loginSemaphore.WaitAsync();
             try
