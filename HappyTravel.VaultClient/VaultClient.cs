@@ -56,42 +56,33 @@ namespace HappyTravel.VaultClient
         }
 
 
-        public async Task LoginWithRole(string token)
+        public async Task Login(string token, LoginMethod loginMethod = LoginMethod.Role)
         {
             await _loginSemaphore.WaitAsync();
             try
             {
                 _logger.Log(LogLevel.Trace, "Logging in into Vault...");
                 SetAuthTokenHeader(token);
+                switch (loginMethod)
+                {
+                    case LoginMethod.Token: return;
+                    case LoginMethod.Role:
+                    {
+                        var roleId = await GetRoleId();
+                        var secretId = await GetSecretId();
+                        var roleToken = await GetToken(new LoginRequest(roleId, secretId));
 
-                var roleId = await GetRoleId();
-                var secretId = await GetSecretId();
-                var roleToken = await GetToken(new LoginRequest(roleId, secretId));
-
-                SetAuthTokenHeader(roleToken);
+                        SetAuthTokenHeader(roleToken);
+                        break;
+                    }
+                    default: throw new Exception("Invalid login method");
+                }
             }
             finally
             {
                 _loginSemaphore.Release();
             }
         }
-
-
-        public async Task LoginWithToken(string token)
-        {
-            _logger.Log(LogLevel.Trace, "Logging in into Vault...");
-            await _loginSemaphore.WaitAsync();
-            try
-            {
-                if (!_client.DefaultRequestHeaders.Contains(AuthHeader))
-                    _client.DefaultRequestHeaders.Add(AuthHeader, token);
-            }
-            finally
-            {
-                _loginSemaphore.Release();
-            }
-        }
-
 
         private void SetAuthTokenHeader(string token)
         {
@@ -149,7 +140,6 @@ namespace HappyTravel.VaultClient
 
 
         private const string AuthHeader = "X-Vault-Token";
-
 
         private readonly HttpClient _client;
         private readonly ILogger _logger;
