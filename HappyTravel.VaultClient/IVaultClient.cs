@@ -9,5 +9,9 @@ namespace HappyTravel.VaultClient
         Task<Dictionary<string, string>> Get(string secret);
 
         Task Login(string token);
+        
+        Task LoginWithToken(string token);
+
+        Task<(string Certificate, string PrivateKey)> IssueCertificate(string role, string name);
     }
 }
