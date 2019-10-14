@@ -7,22 +7,20 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
-using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace HappyTravel.VaultClient
 {
-    public class VaultClient : IDisposable, IVaultClient
+    public class VaultClient : IVaultClient
     {
-        public VaultClient(IHttpClientFactory clientFactory, ILoggerFactory loggerFactory, IOptions<VaultOptions> vaultOptions)
+        public VaultClient(VaultOptions vaultOptions, ILoggerFactory loggerFactory)
         {
-            _client = clientFactory.CreateClient();
             _logger = loggerFactory?.CreateLogger<VaultClient>() ?? new NullLogger<VaultClient>();
-            _options = vaultOptions?.Value ?? throw new ArgumentNullException(nameof(vaultOptions));
+            _options = vaultOptions ?? throw new ArgumentNullException(nameof(vaultOptions));
 
+            _client = new HttpClient {BaseAddress = _options.BaseUrl};
             _serializer = new JsonSerializer();
-
-            _client.BaseAddress = _options.Url;
         }
 
 
@@ -34,10 +32,10 @@ namespace HappyTravel.VaultClient
             if (_loginSemaphore.CurrentCount == 0)
                 throw new Exception("Login procedure not finished");
 
-            var response = await _client.GetAsync($"{_options.Engine}/data/{secret}");
-            var context = await GetContent(response);
-
-            return context.Data["data"].ToObject<Dictionary<string, string>>();
+            using var response = await _client.GetAsync($"{_options.Engine}/data/{secret}");
+            var data = await GetContentData(response);
+            
+            return data["data"].ToObject<Dictionary<string, string>>();
         }
 
 
@@ -48,11 +46,13 @@ namespace HappyTravel.VaultClient
 
             var requestContent = JsonConvert.SerializeObject(new {common_name = name});
             var result = await _client.PostAsync($"pki/issue/{role}", new StringContent(requestContent));
-            var context = await GetContent(result);
+            var contextData = await GetContentData(result);
 
-            return (GetStringFromData(context, "certificate"), GetStringFromData(context, "private_key"));
+            return (GetStringFromData(contextData, "certificate"), GetStringFromData(contextData, "private_key"));
 
-            string GetStringFromData(VaultResponse response, string key) => response.Data[key].ToObject<string>();
+
+            static string GetStringFromData(JObject data, string key) 
+                => data[key].ToObject<string>();
         }
 
 
@@ -61,7 +61,7 @@ namespace HappyTravel.VaultClient
             await _loginSemaphore.WaitAsync();
             try
             {
-                _logger.Log(LogLevel.Trace, "Logging in into Vault...");
+                _logger.Log(LogLevel.Trace, "Logging into Vault...");
                 SetAuthTokenHeader(token);
                 switch (loginMethod)
                 {
@@ -71,7 +71,7 @@ namespace HappyTravel.VaultClient
                         var roleId = await GetRoleId();
                         var secretId = await GetSecretId();
                         var roleToken = await GetToken(new LoginRequest(roleId, secretId));
-
+                        
                         SetAuthTokenHeader(roleToken);
                         break;
                     }
@@ -84,58 +84,73 @@ namespace HappyTravel.VaultClient
             }
         }
 
-        private void SetAuthTokenHeader(string token)
-        {
-            if (_client.DefaultRequestHeaders.Contains(AuthHeader))
-                _client.DefaultRequestHeaders.Remove(AuthHeader);
-
-            _client.DefaultRequestHeaders.Add(AuthHeader, token);
-        }
-
 
         private async Task<VaultResponse> GetContent(HttpResponseMessage response)
         {
             if (!response.IsSuccessStatusCode)
                 throw new Exception();
 
-            using (var stream = await response.Content.ReadAsStreamAsync())
-            using (var streamReader = new StreamReader(stream))
-            using (var jsonTextReader = new JsonTextReader(streamReader))
-            {
-                var content = _serializer.Deserialize<VaultResponse>(jsonTextReader);
-                if (content.Errors != null)
-                { }
+            using var stream = await response.Content.ReadAsStreamAsync();
+            using var streamReader = new StreamReader(stream);
+            using var jsonTextReader = new JsonTextReader(streamReader);
 
-                return content;
-            }
+            var content = _serializer.Deserialize<VaultResponse>(jsonTextReader);
+            if (content.Equals(default(VaultResponse)))
+                throw new Exception("Vault has returned no response");
+
+            if (content.Errors != null)
+                throw new Exception(string.Join(", ", content.Errors));
+
+            return content;
+        }
+
+
+        private async Task<JObject> GetContentData(HttpResponseMessage response)
+        {
+            var content = await GetContent(response);
+            if (content.Data is null)
+                throw new NullReferenceException();
+
+            return content.Data;
         }
 
 
         private async Task<string> GetRoleId()
         {
             var response = await _client.GetAsync($"auth/approle/role/{_options.Role}/role-id");
-            var content = await GetContent(response);
+            var data = await GetContentData(response);
 
-            return content.Data["role_id"].ToString();
+            return data["role_id"].ToString();
         }
 
 
         private async Task<string> GetSecretId()
         {
             var response = await _client.PostAsync($"auth/approle/role/{_options.Role}/secret-id", null);
-            var content = await GetContent(response);
+            var data = await GetContentData(response);
 
-            return content.Data["secret_id"].ToString();
+            return data["secret_id"].ToString();
         }
 
 
         private async Task<string> GetToken(LoginRequest loginRequest)
         {
-            var response = await _client.PostAsync("auth/approle/login",
+            using var response = await _client.PostAsync("auth/approle/login",
                 new StringContent(JsonConvert.SerializeObject(loginRequest), Encoding.UTF8, "application/json"));
             var content = await GetContent(response);
+            if (content.Auth is null)
+                throw new NullReferenceException("Vault returns no auth data");
 
             return content.Auth["client_token"].ToString();
+        }
+
+
+        private void SetAuthTokenHeader(string token)
+        {
+            if (_client.DefaultRequestHeaders.Contains(AuthHeader))
+                _client.DefaultRequestHeaders.Remove(AuthHeader);
+
+            _client.DefaultRequestHeaders.Add(AuthHeader, token);
         }
 
 

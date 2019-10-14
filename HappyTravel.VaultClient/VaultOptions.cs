@@ -2,10 +2,12 @@
 
 namespace HappyTravel.VaultClient
 {
+    #nullable disable
     public class VaultOptions
     {
+        public Uri BaseUrl { get; set; }
         public string Engine { get; set; } = "secret";
         public string Role { get; set; }
-        public Uri Url { get; set; }
     }
+    #nullable restore
 }

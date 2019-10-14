@@ -5,7 +5,7 @@ VisualStudioVersion = 16.0.29102.190
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "HappyTravel.VaultClient", "HappyTravel.VaultClient\HappyTravel.VaultClient.csproj", "{8DCF9FE0-AFD1-4250-8E00-1324BD1CE28E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HappyTravel.VaultClient.Tests", "HappyTravel.VaultClient.Tests\HappyTravel.VaultClient.Tests.csproj", "{965072C3-E5D3-45E6-8626-9BEA89D54054}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "HappyTravel.VaultClient.Tests", "HappyTravel.VaultClient.Tests\HappyTravel.VaultClient.Tests.csproj", "{965072C3-E5D3-45E6-8626-9BEA89D54054}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
