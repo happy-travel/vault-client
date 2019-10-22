@@ -4,15 +4,20 @@ using Newtonsoft.Json.Linq;
 
 namespace HappyTravel.VaultClient
 {
-    public class VaultResponse
+    public readonly struct VaultResponse
     {
+        [JsonConstructor]
+        public VaultResponse(JObject? auth, JObject? data, List<string>? errors) 
+            => (Auth, Data, Errors) = (auth, data, errors);
+        
+
         [JsonProperty("auth")]
-        public JObject Auth { get; set; }
+        public JObject? Auth { get; }
 
         [JsonProperty("data")]
-        public JObject Data { get; set; }
+        public JObject? Data { get; }
 
         [JsonProperty("errors")]
-        public List<string> Errors { get; set; }
+        public List<string>? Errors { get; }
     }
 }
