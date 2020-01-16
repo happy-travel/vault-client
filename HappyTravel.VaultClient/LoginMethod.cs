@@ -1,6 +1,6 @@
 namespace HappyTravel.VaultClient
 {
-    public enum LoginMethod
+    public enum LoginMethods
     {
         Role,
         Token

@@ -14,8 +14,7 @@ namespace HappyTravel.VaultClient
 {
     public class VaultClient : IVaultClient
     {
-        #nullable enable
-        public VaultClient(VaultOptions vaultOptions, ILoggerFactory? loggerFactory = null)
+        public VaultClient(VaultOptions vaultOptions, ILoggerFactory loggerFactory = null)
         {
             _logger = loggerFactory?.CreateLogger<VaultClient>() ?? new NullLogger<VaultClient>();
             _options = vaultOptions ?? throw new ArgumentNullException(nameof(vaultOptions));
@@ -23,7 +22,6 @@ namespace HappyTravel.VaultClient
             _client = new HttpClient {BaseAddress = _options.BaseUrl};
             _serializer = new JsonSerializer();
         }
-        #nullable restore
 
 
         public void Dispose() => _client?.Dispose();
@@ -32,11 +30,11 @@ namespace HappyTravel.VaultClient
         public async Task<Dictionary<string, string>> Get(string secret)
         {
             if (_loginSemaphore.CurrentCount == 0)
-                throw new Exception("Login procedure not finished");
+                throw new Exception("Login procedure was not finished yet.");
 
             using var response = await _client.GetAsync($"{_options.Engine}/data/{secret}");
             var data = await GetContentData(response);
-            
+
             return data["data"].ToObject<Dictionary<string, string>>();
         }
 
@@ -44,7 +42,7 @@ namespace HappyTravel.VaultClient
         public async Task<(string Certificate, string PrivateKey)> IssueCertificate(string role, string name)
         {
             if (_loginSemaphore.CurrentCount == 0)
-                throw new Exception("Login procedure not finished");
+                throw new Exception("Login procedure was not finished yet.");
 
             var requestContent = JsonConvert.SerializeObject(new {common_name = name});
             var result = await _client.PostAsync($"pki/issue/{role}", new StringContent(requestContent));
@@ -58,7 +56,7 @@ namespace HappyTravel.VaultClient
         }
 
 
-        public async Task Login(string token, LoginMethod loginMethod = LoginMethod.Role)
+        public async Task Login(string token, LoginMethods loginMethod = LoginMethods.Role)
         {
             await _loginSemaphore.WaitAsync();
             try
@@ -67,8 +65,8 @@ namespace HappyTravel.VaultClient
                 SetAuthTokenHeader(token);
                 switch (loginMethod)
                 {
-                    case LoginMethod.Token: return;
-                    case LoginMethod.Role:
+                    case LoginMethods.Token: return;
+                    case LoginMethods.Role:
                     {
                         var roleId = await GetRoleId();
                         var secretId = await GetSecretId();
@@ -77,7 +75,7 @@ namespace HappyTravel.VaultClient
                         SetAuthTokenHeader(roleToken);
                         break;
                     }
-                    default: throw new Exception("Invalid login method");
+                    default: throw new Exception("An invalid login method provided.");
                 }
             }
             finally
@@ -90,15 +88,20 @@ namespace HappyTravel.VaultClient
         private async Task<VaultResponse> GetContent(HttpResponseMessage response)
         {
             if (!response.IsSuccessStatusCode)
-                throw new Exception();
+            {
+                if (string.IsNullOrWhiteSpace(response.ReasonPhrase))
+                    throw new Exception($"The response to Vault returns a status code '{response.StatusCode}'.");
 
+                throw new Exception($"The response to Vault returns a status code '{response.StatusCode}' with a reason: '{response.ReasonPhrase}'");
+            }
+                
             using var stream = await response.Content.ReadAsStreamAsync();
             using var streamReader = new StreamReader(stream);
             using var jsonTextReader = new JsonTextReader(streamReader);
 
             var content = _serializer.Deserialize<VaultResponse>(jsonTextReader);
             if (content.Equals(default(VaultResponse)))
-                throw new Exception("Vault has returned no response");
+                throw new Exception("Vault has returned no response.");
 
             if (content.Errors != null)
                 throw new Exception(string.Join(", ", content.Errors));
@@ -111,7 +114,7 @@ namespace HappyTravel.VaultClient
         {
             var content = await GetContent(response);
             if (content.Data is null)
-                throw new NullReferenceException();
+                throw new NullReferenceException("Vault returns no response content.");
 
             return content.Data;
         }
@@ -141,7 +144,7 @@ namespace HappyTravel.VaultClient
                 new StringContent(JsonConvert.SerializeObject(loginRequest), Encoding.UTF8, "application/json"));
             var content = await GetContent(response);
             if (content.Auth is null)
-                throw new NullReferenceException("Vault returns no auth data");
+                throw new NullReferenceException("Vault returns no auth data.");
 
             return content.Auth["client_token"].ToString();
         }
