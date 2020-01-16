@@ -14,7 +14,8 @@ namespace HappyTravel.VaultClient
 {
     public class VaultClient : IVaultClient
     {
-        public VaultClient(VaultOptions vaultOptions, ILoggerFactory loggerFactory)
+        #nullable enable
+        public VaultClient(VaultOptions vaultOptions, ILoggerFactory? loggerFactory = null)
         {
             _logger = loggerFactory?.CreateLogger<VaultClient>() ?? new NullLogger<VaultClient>();
             _options = vaultOptions ?? throw new ArgumentNullException(nameof(vaultOptions));
@@ -22,6 +23,7 @@ namespace HappyTravel.VaultClient
             _client = new HttpClient {BaseAddress = _options.BaseUrl};
             _serializer = new JsonSerializer();
         }
+        #nullable restore
 
 
         public void Dispose() => _client?.Dispose();
