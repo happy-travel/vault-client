@@ -30,7 +30,7 @@ namespace HappyTravel.VaultClient
         public async Task<Dictionary<string, string>> Get(string secret)
         {
             if (_loginSemaphore.CurrentCount == 0)
-                throw new Exception("Login procedure was not finished yet.");
+                throw new Exception("Login procedure has not finished yet.");
 
             using var response = await _client.GetAsync($"{_options.Engine}/data/{secret}");
             var data = await GetContentData(response);
@@ -42,7 +42,7 @@ namespace HappyTravel.VaultClient
         public async Task<(string Certificate, string PrivateKey)> IssueCertificate(string role, string name)
         {
             if (_loginSemaphore.CurrentCount == 0)
-                throw new Exception("Login procedure was not finished yet.");
+                throw new Exception("Login procedure has not finished yet.");
 
             var requestContent = JsonConvert.SerializeObject(new {common_name = name});
             var result = await _client.PostAsync($"pki/issue/{role}", new StringContent(requestContent));
