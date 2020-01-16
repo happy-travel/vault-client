@@ -10,6 +10,9 @@
     <LangVersion>8</LangVersion>
     <Nullable>enable</Nullable>
     <Version>1.0.3</Version>
+    <PackageReleaseNotes>- vault-client action added</PackageReleaseNotes>
+    <PackageProjectUrl>https://github.com/happy-travel/vault-client</PackageProjectUrl>
+    <RepositoryURL>https://github.com/happy-travel/vault-client</RepositoryURL>      
   </PropertyGroup>
 
   <ItemGroup>
