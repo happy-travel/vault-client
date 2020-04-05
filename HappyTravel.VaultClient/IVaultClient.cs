@@ -14,6 +14,14 @@ namespace HappyTravel.VaultClient
         Task<Dictionary<string, string>> Get(string secret);
 
 
+        /// <summary>
+        ///     Gets the secret's value. In case of unsuccessful response default value will return.
+        /// </summary>
+        /// <param name="secret">Vault secret</param>
+        /// <returns></returns>
+        Task<Dictionary<string, string>> GetOrDefault(string secret);
+
+
         Task<(string Certificate, string PrivateKey)> IssueCertificate(string role, string name);
 
 

@@ -39,6 +39,21 @@ namespace HappyTravel.VaultClient
         }
 
 
+        public async Task<Dictionary<string, string>> GetOrDefault(string secret)
+        {
+            if (_loginSemaphore.CurrentCount == 0)
+                throw new Exception("Login procedure has not finished yet.");
+
+            using var response = await _client.GetAsync($"{_options.Engine}/data/{secret}");
+            if (!response.IsSuccessStatusCode)
+                return default;
+
+            var data = await GetContentData(response);
+
+            return data["data"].ToObject<Dictionary<string, string>>();
+        }
+
+
         public async Task<(string Certificate, string PrivateKey)> IssueCertificate(string role, string name)
         {
             if (_loginSemaphore.CurrentCount == 0)
