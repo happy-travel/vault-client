@@ -35,7 +35,7 @@ namespace HappyTravel.VaultClient
             using var response = await _client.GetAsync($"{_options.Engine}/data/{secret}");
             var data = await GetContentData(response);
 
-            return data["data"].ToObject<Dictionary<string, string>>();
+            return data["data"]?.ToObject<Dictionary<string, string>>() ?? new Dictionary<string, string>();
         }
 
 
@@ -50,7 +50,7 @@ namespace HappyTravel.VaultClient
 
             var data = await GetContentData(response);
 
-            return data["data"].ToObject<Dictionary<string, string>>();
+            return data["data"]?.ToObject<Dictionary<string, string>>() ?? new Dictionary<string, string>();
         }
 
 
@@ -67,7 +67,7 @@ namespace HappyTravel.VaultClient
 
 
             static string GetStringFromData(JObject data, string key) 
-                => data[key].ToObject<string>();
+                => data[key]?.ToObject<string>();
         }
 
 
@@ -109,7 +109,7 @@ namespace HappyTravel.VaultClient
 
                 throw new Exception($"The response to Vault returns a status code '{response.StatusCode}' with a reason: '{response.ReasonPhrase}'");
             }
-                
+
             using var stream = await response.Content.ReadAsStreamAsync();
             using var streamReader = new StreamReader(stream);
             using var jsonTextReader = new JsonTextReader(streamReader);
@@ -140,7 +140,7 @@ namespace HappyTravel.VaultClient
             var response = await _client.GetAsync($"auth/approle/role/{_options.Role}/role-id");
             var data = await GetContentData(response);
 
-            return data["role_id"].ToString();
+            return data["role_id"]?.ToString();
         }
 
 
@@ -149,7 +149,7 @@ namespace HappyTravel.VaultClient
             var response = await _client.PostAsync($"auth/approle/role/{_options.Role}/secret-id", null);
             var data = await GetContentData(response);
 
-            return data["secret_id"].ToString();
+            return data["secret_id"]?.ToString();
         }
 
 
@@ -161,7 +161,7 @@ namespace HappyTravel.VaultClient
             if (content.Auth is null)
                 throw new NullReferenceException("Vault returns no auth data.");
 
-            return content.Auth["client_token"].ToString();
+            return content.Auth["client_token"]?.ToString();
         }
 
 
