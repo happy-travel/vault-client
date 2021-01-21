@@ -22,6 +22,8 @@ public class Startup
 }
 ```
 
+Basic principles of interaction with Valut could be found [here](https://github.com/happy-travel/docs/wiki/How-To-%5C-Create-Secrets-in-Vault).
+
 
 ## Automation
 
